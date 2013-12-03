@@ -50,7 +50,8 @@ public class Cluster2D {
         double threshold=1.0e-6;
         double incre=1.0e+6;
         while(incre>threshold){
-        
+            
+            /*
             ArrayList<Float> tagX=new ArrayList<Float>();
             ArrayList<Float> tagY=new ArrayList<Float>();
             ArrayList<Integer> tagSize=new ArrayList<Integer>();
@@ -59,7 +60,11 @@ public class Cluster2D {
                 tagY.add(0.0f);
                 tagSize.add(0);
             }
+            */
+            float[][] tagXY = new float[k_param][2];
+            int[] tagSize = new int[k_param];
             ArrayList<Integer> tags=new ArrayList<Integer>();
+            
             for (int i=0;i<points.size();i++){
                 ArrayList<Float> dists=new ArrayList<Float>();
                 for (int j=0;j<k_param;j++){
@@ -67,25 +72,30 @@ public class Cluster2D {
                 }
                 int tag=dists.indexOf(Collections.min(dists));
                 tags.add(tag);
-                float sumX=tagX.get(tag)+points.get(i).get(0);
-                float sumY=tagY.get(tag)+points.get(i).get(1);
-                int sumSize=tagSize.get(tag)+1;
-                tagX.set(tag,sumX);
-                tagY.set(tag,sumY);
-                tagSize.set(tag,sumSize);
+                //float sumX=tagX.get(tag)+points.get(i).get(0);
+                //float sumY=tagY.get(tag)+points.get(i).get(1);
+                //int sumSize=tagSize.get(tag)+1;
+                //tagX.set(tag,sumX);
+                //tagY.set(tag,sumY);
+                //tagSize.set(tag,sumSize);
+                tagXY[tag][0] += points.get(i).get(0);
+                tagXY[tag][1] += points.get(i).get(1);
+                tagSize[tag] += 1;
             }
             incre=0.0;
             for(int i=0;i<k_param;i++){
-                float meanX=tagX.get(i)/tagSize.get(i);
-                float meanY=tagY.get(i)/tagSize.get(i);
-                tagX.set(i,meanX);
-                tagY.set(i,meanY);
-                double tempX2 = Math.pow((double)(meanX-centroids.get(i).get(0)),2);
-                double tempY2 = Math.pow((double)(meanY-centroids.get(i).get(1)),2);
+                //float meanX=tagX.get(i)/tagSize.get(i);
+                //float meanY=tagY.get(i)/tagSize.get(i);
+                //tagX.set(i,meanX);
+                //tagY.set(i,meanY);
+                tagXY[i][0] /= tagSize[i];
+                tagXY[i][1] /= tagSize[i];
+                double tempX2 = Math.pow((double)(tagXY[i][0]-centroids.get(i).get(0)),2);
+                double tempY2 = Math.pow((double)(tagXY[i][1]-centroids.get(i).get(1)),2);
                 incre = incre + Math.sqrt(tempX2+tempY2);
                 ArrayList<Float> updatedCentroid=new ArrayList<Float>();
-                updatedCentroid.add(meanX);
-                updatedCentroid.add(meanY);
+                updatedCentroid.add(tagXY[i][0]);
+                updatedCentroid.add(tagXY[i][1]);
                 centroids.set(i,updatedCentroid);
             }
             System.out.println(tags);
