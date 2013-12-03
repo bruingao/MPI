@@ -9,6 +9,7 @@ public class Cluster2D {
         String inputFile=argv[0];
         int k_param=Integer.parseInt(argv[1]);
         
+        // scan input file and store the 2D points
         ArrayList<ArrayList<Float>> points = new ArrayList<ArrayList<Float>>();
         Scanner aScanner = new Scanner(new File(inputFile));
         String aLine = null;
@@ -21,12 +22,31 @@ public class Cluster2D {
             points.add(xy);
         } while (aScanner.hasNext());
         
+        
+        // choose initial centroids
+        // use either one of the two strategies below
+        
+        // 1
+        float minDist=0.5f; // set it smaller than minDistance in generaterawdata.py
+        ArrayList<ArrayList<Float>> centroids = new ArrayList<ArrayList<Float>>();
+        int randInd=(int)(Math.random() * points.size());
+        centroids.add(points.get(randInd));
+        for (int i=0;i<k_param;i++){
+            while(tooClose(points.get(randInd),centroids,minDist)){
+                randInd=(int)(Math.random() * points.size());
+            }
+            centroids.add(points.get(randInd));
+        }
+        
+        /*
+        // 2
         ArrayList<ArrayList<Float>> centroids = new ArrayList<ArrayList<Float>>();
         for (int i=0;i<k_param;i++){
             centroids.add(points.get(i));
         }
+        */
         
-        
+        // iterate until centroids are stable
         double threshold=1.0e-6;
         double incre=1.0e+6;
         while(incre>threshold){
@@ -73,11 +93,24 @@ public class Cluster2D {
         
     }
     
+    
+    // compute Euclidean distance between two points
     public static Float dist(ArrayList<Float> p1, ArrayList<Float> p2) {
         double xDiff=p1.get(0)-p2.get(0);
         double yDiff=p1.get(1)-p2.get(1);
         float dis=(float)Math.sqrt(Math.pow(xDiff,2)+Math.pow(yDiff,2));
         return dis;
+    }
+    
+    
+    // decide if one point is too close to any of the points in a list
+    public static boolean tooClose(ArrayList<Float> one, ArrayList<ArrayList<Float>> list, Float minDist){
+        for (int iter=0;iter<list.size();iter++){
+            if(dist(one,list.get(iter))<minDist){
+                return true;
+            }
+        }
+        return false;
     }
     
 }
