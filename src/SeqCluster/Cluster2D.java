@@ -9,7 +9,7 @@ public class Cluster2D {
         String inputFile=argv[0];
         int k_param=Integer.parseInt(argv[1]);
         
-        ArrayList<ArrayList> points = new ArrayList<ArrayList>();
+        ArrayList<ArrayList<Float>> points = new ArrayList<ArrayList<Float>>();
         Scanner aScanner = new Scanner(new File(inputFile));
         String aLine = null;
         do {
@@ -21,7 +21,7 @@ public class Cluster2D {
             points.add(xy);
         } while (aScanner.hasNext());
         
-        ArrayList<ArrayList> centroids = new ArrayList<ArrayList>();
+        ArrayList<ArrayList<Float>> centroids = new ArrayList<ArrayList<Float>>();
         for (int i=0;i<k_param;i++){
             centroids.add(points.get(i));
         }
@@ -47,8 +47,8 @@ public class Cluster2D {
                 }
                 int tag=dists.indexOf(Collections.min(dists));
                 tags.add(tag);
-                float sumX=tagX.get(tag)+(float)points.get(i).get(0);
-                float sumY=tagY.get(tag)+(float)points.get(i).get(1);
+                float sumX=tagX.get(tag)+points.get(i).get(0);
+                float sumY=tagY.get(tag)+points.get(i).get(1);
                 int sumSize=tagSize.get(tag)+1;
                 tagX.set(tag,sumX);
                 tagY.set(tag,sumY);
@@ -60,8 +60,8 @@ public class Cluster2D {
                 float meanY=tagY.get(i)/tagSize.get(i);
                 tagX.set(i,meanX);
                 tagY.set(i,meanY);
-                double tempX2 = Math.pow((double)(meanX-(float)centroids.get(i).get(0)),2);
-                double tempY2 = Math.pow((double)(meanY-(float)centroids.get(i).get(1)),2);
+                double tempX2 = Math.pow((double)(meanX-centroids.get(i).get(0)),2);
+                double tempY2 = Math.pow((double)(meanY-centroids.get(i).get(1)),2);
                 incre = incre + Math.sqrt(tempX2+tempY2);
                 ArrayList<Float> updatedCentroid=new ArrayList<Float>();
                 updatedCentroid.add(meanX);
