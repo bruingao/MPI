@@ -51,16 +51,6 @@ public class Cluster2D {
         double incre=1.0e+6;
         while(incre>threshold){
             
-            /*
-            ArrayList<Float> tagX=new ArrayList<Float>();
-            ArrayList<Float> tagY=new ArrayList<Float>();
-            ArrayList<Integer> tagSize=new ArrayList<Integer>();
-            for (int i=0;i<k_param;i++){
-                tagX.add(0.0f);
-                tagY.add(0.0f);
-                tagSize.add(0);
-            }
-            */
             float[][] tagXY = new float[k_param][2];
             int[] tagSize = new int[k_param];
             ArrayList<Integer> tags=new ArrayList<Integer>();
@@ -72,22 +62,12 @@ public class Cluster2D {
                 }
                 int tag=dists.indexOf(Collections.min(dists));
                 tags.add(tag);
-                //float sumX=tagX.get(tag)+points.get(i).get(0);
-                //float sumY=tagY.get(tag)+points.get(i).get(1);
-                //int sumSize=tagSize.get(tag)+1;
-                //tagX.set(tag,sumX);
-                //tagY.set(tag,sumY);
-                //tagSize.set(tag,sumSize);
                 tagXY[tag][0] += points.get(i).get(0);
                 tagXY[tag][1] += points.get(i).get(1);
                 tagSize[tag] += 1;
             }
             incre=0.0;
             for(int i=0;i<k_param;i++){
-                //float meanX=tagX.get(i)/tagSize.get(i);
-                //float meanY=tagY.get(i)/tagSize.get(i);
-                //tagX.set(i,meanX);
-                //tagY.set(i,meanY);
                 tagXY[i][0] /= tagSize[i];
                 tagXY[i][1] /= tagSize[i];
                 double tempX2 = Math.pow((double)(tagXY[i][0]-centroids.get(i).get(0)),2);
