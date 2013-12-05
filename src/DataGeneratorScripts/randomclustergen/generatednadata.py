@@ -74,6 +74,8 @@ def drawOrigin(dlen):
         strand.append(bases[random.randint(0,3)])
     return strand
 
+
+
 # start by reading the command line
 numClusters, \
 numDNA, \
@@ -103,11 +105,13 @@ for i in range(0, numClusters):
         acentroid=copy.deepcopy(cluster)
         # generate number of differences
         numDiff = int(abs(numpy.random.normal(0, deviation)))
+        # randomly choose locations to be altered
         indDiff=numpy.random.randint(0, lenDNA, numDiff)
         for k in range(0,numDiff):
             bases=['A','C','G','T']
             origBase=acentroid[indDiff[k]]
             bases.remove(origBase)
+            # randomly alter location
             acentroid[indDiff[k]]=bases[random.randint(0,2)]
         # write the new strand out
         writer.writerow(acentroid)
