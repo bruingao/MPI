@@ -78,7 +78,21 @@ public class Cluster2D {
                 updatedCentroid.add(tagXY[i][1]);
                 centroids.set(i,updatedCentroid);
             }
-            System.out.println(tags);
+            
+            if(incre<=threshold){
+                for (int i=0;i<k_param;i++){
+                    System.out.println("centroid "+i+":");
+                    System.out.println(centroids.get(i));
+                    System.out.println("points:");
+                    for (int j=0;j<points.size();j++){
+                        if(tags.get(j)==i){
+                            System.out.println(points.get(j));
+                        }
+                    }
+                }
+            }
+            
+            //System.out.println(tags);
         }
         
     }

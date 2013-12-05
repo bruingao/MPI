@@ -101,7 +101,20 @@ public class ClusterDNA {
                 centroids.set(i,updatedCentroid);
             }
             
-            System.out.println(tags);
+            if(converged==true){
+                for (int i=0;i<k_param;i++){
+                    System.out.println("centroid "+i+":");
+                    System.out.println(centroids.get(i));
+                    System.out.println("points:");
+                    for (int j=0;j<DNAs.size();j++){
+                        if(tags.get(j)==i){
+                            System.out.println(DNAs.get(j));
+                        }
+                    }
+                }
+            }
+            
+            //System.out.println(tags);
         }
         
     }
