@@ -4,12 +4,14 @@
 
 #include "Util.h"
 
+/* master node */
 #define MASTER 0
 #define DNA_MIN 1
 #define TD_MIN 0.1
 #define MAX_DIST 2147483647 
 
 
+/* DNA Strands characters */
 char bases[4] = {'A','C','G','T'};
 
 int main(int argc,char** argv)
@@ -18,7 +20,7 @@ int main(int argc,char** argv)
 	int numtasks, rank, sendcnt, recvcnt;
 
 	/* point dimension, number of points*/
-	int dimension, lines, cnt;
+	int dimension, lines;
 	
 	/* file to be read */
 	FILE* fp;
@@ -41,30 +43,38 @@ int main(int argc,char** argv)
 	/* labels for each point */
 	int* labels;
 
+	/* whether this task is a dna clustering */
 	int dna;
+	/* how many clusters */
 	int cluster;
 
+	/* check the arguments */
 	if (argc < 5) {
 		printf("Usage: mpiKmeans <dna or 2d> <input file name> <lines> <clusters> <dimension>\n");
 		exit(1);
 	}
 
+	/* check the arguments */
 	if (!strcmp(argv[1],"dna") && argc < 6) {
 		printf("Usage: mpiKmeans <dna or 2d> <input file name> <lines> <clusters> <dimension>\n");
 		exit(1);
 	}
 	
+	/* file name */
 	filename = argv[2];
+	/* how many points */
 	lines = atoi(argv[3]);
+	/* dna clustring or not */
 	dna = !strcmp(argv[1], "dna");
+	/* how many clusters */
 	cluster = atoi(argv[4]);
-
 
 	MPI_Init(&argc,&argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 
 	if (dna) {
+		/* initialize dna clustring parameters */
 		dimension = atoi(argv[5]);
 		sendcnt = (lines + numtasks - 1)/numtasks * dimension;
 		recvcnt = sendcnt;
@@ -72,6 +82,7 @@ int main(int argc,char** argv)
 		dnaBuf = malloc(sizeof(char) * recvcnt);
 		dnaC = malloc(sizeof(char) * cluster * dimension);
 	} else {
+		/* initialize 2d clustring parameters */
 		dimension = 2;
 		sendcnt = (lines + numtasks - 1)/numtasks * dimension;
 		recvcnt = sendcnt;
@@ -81,6 +92,7 @@ int main(int argc,char** argv)
 	}
 
 	
+	/* if it's master, read the data source and genterate centroids */
 	if (rank == MASTER) {
 		fp = fopen(filename, "r");	
 		if(fp == NULL) {
@@ -99,7 +111,7 @@ int main(int argc,char** argv)
 		
 	}
 
-	/* compute the number and offset of data elements to send */
+	/* compute the number and offset of data elements to send for each process */
 	int* sendcnts = malloc(sizeof(int)*numtasks);
 	int* strides = malloc(sizeof(int)*numtasks);
 	int i;
@@ -121,27 +133,38 @@ int main(int argc,char** argv)
 		MPI_Bcast (tdC,cluster * dimension,MPI_DOUBLE,MASTER,MPI_COMM_WORLD); 
 	}
 
+	/* compute the number of points for each process */
 	int num = sendcnts[rank]/dimension;
+	/* allocate an array for labeling each point */
 	labels = malloc(sizeof(int) * num);
 	
+	/* do k-means until converging */
 	do {
 		int j;
+		/* dna clustering */
 		if(dna) {
+			/* the count of each character in every position of each point in every process */
 			int* newcnts = malloc(sizeof(int) * cluster * dimension * 4);
+			/* the count of each character in every position of each point in sum */
 			int* recvcnts = malloc(sizeof(int) * cluster * dimension * 4);
+			/* initialize to zero */
 			memset(newcnts, 0, sizeof(int) * cluster * dimension * 4);
+			/* the new centroids for every cluster computed */
 			char* recvctrs = malloc(sizeof(char) * cluster * dimension);
+			/* for every point, compute its distance from each centroid, choose the minimum one and label it */
 			for(i = 0; i < num; i++) {
+				/* initialize label and distance */
 				int lb = -1;
 				int dDNA = MAX_DIST;
+				/* iterate each cluster centroid and update the label and distance */
 				for(j = 0; j < cluster;j++) {
 					int tmpDist = distDNA(dnaC+j*dimension, dnaBuf+i*dimension, dimension);		
-					//printf("tmpDist%d:%d\n",j,tmpDist);
 					if (tmpDist < dDNA) {
 						dDNA = tmpDist;
 						lb = j;
 					}
 				}	
+				/* iterate each position of the point and update the counts of each character */
 				for(j = 0; j < dimension; j++) {
 					switch(dnaBuf[i*dimension+j]) {
 						case 'A':
@@ -160,14 +183,21 @@ int main(int argc,char** argv)
 							break;
 					}
 				}
+				/* update the point's label */
 				labels[i] = lb;
 			}
 			
+			/* reduce the character counts in every position of each point on the master node */
 			MPI_Reduce(newcnts, recvcnts, cluster * 4 * dimension, MPI_INT, MPI_SUM, MASTER, MPI_COMM_WORLD);
+			/* set the terminate flag */
 			int flag = 0;
+			/* on the master node, compute the new centroid for each cluster */
 			if(rank == MASTER) {
+				/* iterate each cluster */
 				for (i = 0; i < cluster; i++) {
+					/* iterate each position of a centroid */
 					for (j = 0; j < dimension; j++) {
+						/* choose the character with most counts */
 						int left = 
 						recvcnts[i*dimension*4+4*j+0] > recvcnts[i*dimension*4+4*j+1]?0:1;
 						int right = 
@@ -176,42 +206,51 @@ int main(int argc,char** argv)
 						int final = recvcnts[i*dimension*4+4*j+left] > 
 						recvcnts[i*dimension*4+4*j+right]?left:right;
 
+						/* update the centroid */
 						recvctrs[i * dimension + j] = bases[final];
 					}
 				}
+				/* initialize the difference of centroids */
 				int dsum = 0;
+				/* iterate each cluster centroid and update the difference of centroids */
 				for(i =0;i<cluster;i++) {
 					dsum += distDNA(recvctrs+dimension*i,dnaC+dimension*i,dimension);
 				}
+				/* see if it is time to terminate */
 				if(dsum <= DNA_MIN)
 					flag = 1;
 				free(dnaC);
+				/* update the centroids */
 				dnaC = recvctrs;
-				/*for(i=0;i<cluster;i++) {
-					for(j=0; j<dimension;j++) {
-						printf("%c,",dnaC[dimension*i+j]);	
-					}
-					printf("\n");
-				}*/
 			}
+			/* broadcast the terminate flag */
 			MPI_Bcast (&flag,1,MPI_INT,MASTER,MPI_COMM_WORLD); 
 			free(newcnts);
 			free(recvcnts);
 			if(flag)
 				break;
 			
+			/* broadcast the new centroids */
 			MPI_Bcast (dnaC,cluster * dimension,MPI_CHAR,MASTER,MPI_COMM_WORLD); 
 			
 		} else {
+			/* the new centroids on each process */
 			double* newctrs = malloc(sizeof(double) * cluster * dimension);
+			/* the received centroids on the master */
 			double* recvctrs = malloc(sizeof(double) * cluster * dimension);
+			/* the number of points on each cluster */
 			int* newcnts = malloc(sizeof(int) * cluster);
+			/* the received number of points on each cluster */
 			int* recvcnts = malloc(sizeof(int) * cluster);
+			/* initialization */
 			memset(newctrs, 0, sizeof(double) * cluster * dimension);
 			memset(newcnts, 0, sizeof(int) * cluster);
+			/* iterate each point on one process */
 			for(i = 0; i < num; i++) {
+				/* initialize the label and distance */
 				int lb = -1;
 				double d2D = MAX_DIST;
+				/* iterate each centroid and update the label to the one with minimum distance */
 				for(j = 0; j < cluster;j++) {
 					double tmpDist = 
 						dist2D(tdC+j*dimension, tdBuf+i*dimension);		
@@ -221,34 +260,42 @@ int main(int argc,char** argv)
 					}
 							
 				}	
+				/* update the label */
 				labels[i] = lb;
+				/* update the count */
 				newcnts[lb]++;
+				/* sum each point */
 				for (j = 0; j < dimension; j++) {
 					newctrs[lb * dimension + j] += tdBuf[i * dimension + j];
 				}
 			}
+			/* reduce the new centroid sum to the master process */
 			MPI_Reduce(newctrs, recvctrs, cluster * dimension, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
+			/* reduce the cluster counts to the master process */
 			MPI_Reduce(newcnts, recvcnts, cluster, MPI_INT, MPI_SUM, MASTER, MPI_COMM_WORLD);
+			/* initilize the termination flag */
 			int flag = 0;
+			/* on the master process, compute the new centroids */
 			if (rank == MASTER){
+				/* iterate each cluster */
 				for (i = 0; i < cluster; i++) {
 					for (j = 0; j < dimension; j++) {
 						recvctrs[i * dimension + j] /= recvcnts[i];	
 					}
 				}
+				/* intilize the difference sum */
 				double sum = 0;
+				/* iterate each cluster and update the sum */
 				for (i = 0; i < cluster; i++) {
 					sum += dist2D(recvctrs+i*dimension,tdC+i*dimension);
 				}
+				/* if the difference is less than a threshold, set the termination flag */
 				if (sum < TD_MIN)		
 					flag = 1;
 				free(tdC);
 				tdC = recvctrs;
-				/*for(i = 0; i<cluster ;i ++) {
-					printf("cnts:%d\n",recvcnts[i]);
-					printf("%lf,%lf\n",tdC[2*i],tdC[2*i+1]);
-				}*/
 			}
+			/* broadcast the temination flag */
 			MPI_Bcast (&flag,1,MPI_INT,MASTER,MPI_COMM_WORLD); 
 
 			free(newcnts);
@@ -258,13 +305,14 @@ int main(int argc,char** argv)
 			if(flag)
 				break;
 
-
+			/* broadcast the new centroids */
 			MPI_Bcast (tdC,cluster * dimension,MPI_DOUBLE,MASTER,MPI_COMM_WORLD); 
 			
 		}
 			
 	}while(1);
 
+	/* gather all the labels of all the points on the master process */
 	int* reclabels = malloc(sizeof(int)*lines);
 	int offset = 0;	
 	for(i = 0;i<numtasks;i++) {
@@ -274,9 +322,8 @@ int main(int argc,char** argv)
 	}
 	MPI_Gatherv (labels,num,MPI_INT,reclabels,sendcnts,strides,MPI_INT,MASTER,MPI_COMM_WORLD);
 
+	/* output each cluster including the centroid and all the points */
 	if(rank == MASTER && dna) {
-		/* collect and output each cluster */
-
 		for(i = 0;i<cluster;i++) {
 			printf("Clster%d:\n",i);	
 			printf("Center:\n");
@@ -316,6 +363,7 @@ int main(int argc,char** argv)
 		}
 	}
 	
+	/* gabage collection */
 	free(labels);
 	free(reclabels);
 	free(sendcnts);

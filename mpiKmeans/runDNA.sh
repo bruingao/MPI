@@ -1,2 +1,2 @@
-mpirun -np 3 a.out dna ../src/DataGeneratorScripts/input/dnacluster.csv 20 2 20
+mpirun -np 3 mpiKmeans dna ../src/DataGeneratorScripts/input/dnacluster.csv 20 2 20
 

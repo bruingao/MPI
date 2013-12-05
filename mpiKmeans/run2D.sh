@@ -1,1 +1,1 @@
-mpirun -np 3 a.out td ../src/DataGeneratorScripts/input/cluster.csv 20 2
+mpirun -np 3 mpiKmeans td ../src/DataGeneratorScripts/input/cluster.csv 20 2
