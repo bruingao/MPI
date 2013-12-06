@@ -1,0 +1,32 @@
+DNA(5,000,000 strands, 5 cluster):
+sequencial: 25.69s
+
+1 processes:15.19s
+2 processes:9.80s
+3 processes: 9.05s
+4 processes: 8.11s
+5 processes: 8.14s
+6 processes: 7.68s
+7 processes: 7.50s
+8 processes: 13.67s
+9 processes: 13.50s
+10 processes:13.51s
+11 processes:13.72s
+12 processes:13.37s
+
+
+2D(5,000,000 points, 5 cluster):
+sequencial: 26.80s
+
+1 processes: 8.46s
+2 processes: 8.32s
+3 processes: 7.58s
+4 processes: 6.79s
+5 processes: 8.03s
+6 processes: 12.88s
+7 processes: 12.73s
+8 processes: 12.44s
+9 processes: 12.30s
+10 processes: 12.64s
+11 processes: 12.41s
+12 processes: 12.09s
